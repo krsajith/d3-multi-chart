@@ -1,1 +1,17 @@
 /* You can add global styles to this file, and also import other style files */
+.line {
+    fill: none;
+    stroke: #0093D1;
+    stroke-width: 1px;
+    stroke-dasharray: '385 385';
+    stroke-dashoffset: 385;
+    shape-rendering: geometricPrecision;
+}
+
+/* Style the dots by assigning a fill and stroke */
+
+.dot {
+    fill: #0093D1;
+    stroke: #0093D1;
+    shape-rendering: geometricPrecision;
+}
