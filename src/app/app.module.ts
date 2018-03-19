@@ -1,20 +1,19 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 
-
-import { AppComponent } from './app.component';
 import { HttpClientModule } from '@angular/common/http';
+import { ChartTwoComponent } from './chart-two/chart-two.component';
 
 
 @NgModule({
   declarations: [
-    AppComponent
+    ChartTwoComponent
   ],
   imports: [
     BrowserModule,
     HttpClientModule
   ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [ChartTwoComponent]
 })
 export class AppModule { }
