@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Price } from './../price';
 import { Component, OnInit } from '@angular/core';
 import * as d3 from 'd3';
+import { constants } from 'fs';
 
 
 @Component({
@@ -48,7 +49,7 @@ export class ChartTwoComponent implements OnInit {
     this.width = chartDiv.clientWidth;
     this.height = chartDiv.clientHeight;
 
-    this.margin = { top: 50, right: 50, bottom: 50, left: 50 };
+    this.margin = { top: 50, right: 80, bottom: 60, left: 50 };
     this.width = this.width - this.margin.left - this.margin.right;
     this.height = this.height - this.margin.top - this.margin.bottom;
 
@@ -63,7 +64,7 @@ export class ChartTwoComponent implements OnInit {
     this.http.get<[{}]>('./assets/txn-data.json').subscribe(data => {
 
       data.forEach((obj, index) => this.oilPrice.push(
-        new Price(this.mmddyyFormat(obj['date']), obj['predicted'], obj['close'], obj['profit'], obj['action'])));
+        new Price(this.mmddyyFormat(obj['date']), obj['predicted'], obj['close'], Math.ceil(index / 10) * 100000, obj['action'])));
 
       const profit: Price[] = new Array();
       profit.push(new Price(this.oilPrice[0].date, 0, 0, 100 * 1000, ''));
@@ -78,7 +79,8 @@ export class ChartTwoComponent implements OnInit {
       profit.push(new Price(this.oilPrice[90].date, 0, 0, 190 * 1000, ''));
       profit.push(new Price(this.oilPrice[100].date, 0, 0, 200 * 1000, ''));
 
-      this.plotBarChart(profit);
+      // this.plotBarChart(profit);
+      this.plotLineChart2(this.oilPrice);
       this.plotLineChart(this.oilPrice);
 
 
@@ -284,6 +286,115 @@ export class ChartTwoComponent implements OnInit {
       .on('mouseout', function (d) {
         tooltip.style('display', 'none');
       });
+
   }
+
+  /**
+   *
+   * @param data
+   */
+  plotLineChart2(data: Price[]) {
+
+    const xScale = d3.scaleTime().range([0, this.width]);
+    const yScale = d3.scaleLinear().range([this.height, 0]);
+
+
+    xScale.domain(d3.extent(data, function (d) { return d.date; }));
+    // yScale.domain([0, d3.max(data, function (d) { return d.close; })]);
+    yScale.domain([d3.min(data, function (d) { return d.profit; }), d3.max(data, function (d) { return d.profit; })]);
+
+    const line = d3.line<Price>()
+      .x(function (d: Price, i) { return xScale(d.date); })
+      .y(function (d: Price) { return yScale(d.profit); })
+      .curve(d3.curveStep);
+
+    const g = this.svg.append('g');
+
+    g.append('path')
+      .datum(this.oilPrice)
+      .attr('class', 'line')
+      .attr('d', line);
+
+
+    // Add the X Axis
+    g.append('g')
+      .attr('transform', 'translate(0,' + this.height + ')')
+      .call(d3.axisBottom(xScale))
+      .selectAll('text')
+      .style('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '-.55em')
+      .attr('transform', 'rotate(-45)');
+
+
+
+    // const xAxis = d3.axisBottom(xScale)
+    //   .tickFormat(d3.timeFormat('%Y-%m-%d'))
+    //   .tickValues(xScale.domain().filter(function (d, i) { return !(i % 4); }));
+
+    // g.append('g')
+    //   .attr('class', 'x axis')
+    //   .attr('transform', 'translate(0,' + this.height + ')')
+    //   .call(xAxis)
+    //   .selectAll('text')
+    //   .style('text-anchor', 'end')
+    //   .attr('dx', '-.8em')
+    //   .attr('dy', '-.55em')
+    //   .attr('transform', 'rotate(-45)');
+
+
+
+    // Add the Y Axis
+    g.append('g')
+      .attr('transform', 'translate( ' + this.width + ', 0 )')
+      .call(d3.axisRight(yScale));
+
+
+
+    const focus = g.append('g')
+      .attr('class', 'focus')
+      .style('display', 'none');
+
+    // focus.append('line')
+    //   .attr('class', 'x-hover-line hover-line')
+    //   .attr('y1', 0)
+    //   .attr('y2', this.height);
+
+    // focus.append('line')
+    //   .attr('class', 'y-hover-line hover-line')
+    //   .attr('x1', this.width)
+    //   .attr('x2', this.width);
+
+    focus.append('circle')
+      .attr('r', 7.5);
+
+    focus.append('text')
+      .attr('x', 15)
+      .attr('dy', '.31em');
+
+    const bisectDate = d3.bisector(function (d) { return d['date']; }).left;
+
+    this.svg.append('rect')
+      // .attr('transform', 'translate( 0,0 )')
+      .attr('class', 'overlay')
+      .attr('width', this.width)
+      .attr('height', this.height)
+      .on('mouseover', function () { focus.style('display', null); })
+      .on('mouseout', function () { focus.style('display', 'none'); })
+      .on('mousemove', function () {
+        const x0 = xScale.invert(d3.mouse(this)[0]);
+        const i = bisectDate(data, x0, 1);
+        const d0 = data[i - 1];
+        const d1 = data[i];
+        console.log(x0, i, d0, d1);
+        const d = d1;
+        focus.attr('transform', 'translate(' + xScale(d.date) + ',' + yScale(d.profit) + ')');
+        focus.select('text').text(function () { return d.profit; });
+        // focus.select('.x-hover-line').attr('y2', this.height - yScale(d.close));
+        // focus.select('.y-hover-line').attr('x2', this.width + this.width);
+      });
+
+  }
+
 
 }
