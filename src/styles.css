@@ -1,7 +1,14 @@
+#line-chart{
+    height: 800px;
+    border-style: solid;
+    border-color: #182848;
+    border-width: thin;
+}
+
 /* You can add global styles to this file, and also import other style files */
 .line {
     fill: none;
-    stroke: #0093D1;
+    stroke:url(#priceGradient);
     stroke-width: 1px;
     stroke-dasharray: '385 385';
     stroke-dashoffset: 385;
@@ -11,8 +18,8 @@
 /* Style the dots by assigning a fill and stroke */
 
 .dot {
-    fill: #0093D1;
-    stroke: #0093D1;
+    fill: url(#priceGradient);
+    stroke: url(#priceGradient);
     shape-rendering: geometricPrecision;
 }
 
@@ -24,7 +31,7 @@ div.tooltip {
     position: absolute;
     width: 10em;
     height: 5em;
-    color: #0093D1;
+    color: #1b7db1;
     background: white;
     border: 0px;
     border-radius: 8px;
@@ -44,7 +51,7 @@ div.tooltip {
 
 
 .noUi-connect {
-    background: #4682b4 !important;
+    background: #182848 !important;
 }
 
 .axis {
@@ -54,30 +61,51 @@ div.tooltip {
 .axis path,
 .axis line {
   fill: none;
-  stroke: #D4D8DA;
-  stroke-width: 2px;
+  stroke: url(#mainGradient);;
+  stroke-width: 1px;
   shape-rendering: crispEdges;
 }
 
-.line {
-  fill: none;
-  stroke: #6F257F;
-  stroke-width: 5px;
+/*********************************************************************** AREA **************************/
+
+  .stop-left {
+    stop-color: #4b6cb7;  /* Indigo */
 }
 
-.overlay {
-  fill: none;
-  pointer-events: all;
+.stop-right {
+    stop-color:#182848;  /* Teal */
 }
 
-.focus circle {
-  fill: #F1F3F3;
-  stroke: #6F257F;
-  stroke-width: 5px;
-}
+
+
+
+.line-asset {
+    fill: none;
+    /* stroke: #0d3d56; */
+    stroke: url(#mainGradient);
+    stroke-width: 5px;
+  }
   
-.hover-line {
-  stroke: #6F257F;
-  stroke-width: 2px;
-  stroke-dasharray: 3,3;
-}
+  .overlay {
+    fill: none;
+    pointer-events: all;
+  }
+  
+  .focus circle {
+    fill: #F1F3F3;
+    stroke: #182848;
+    stroke-width: 5px;
+  }
+    
+  .hover-line {
+    stroke: #182848;
+    stroke-width: 2px;
+    stroke-dasharray: 3,3;
+  }
+  
+  
+  .area {
+      /* fill: #0d3d56; */
+      fill: url(#mainGradient);
+    }
+    

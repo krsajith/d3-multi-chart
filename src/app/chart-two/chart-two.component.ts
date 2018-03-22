@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Price } from './../price';
 import { Component, OnInit } from '@angular/core';
 import * as d3 from 'd3';
-import { constants } from 'fs';
+
 
 
 @Component({
@@ -47,7 +47,7 @@ export class ChartTwoComponent implements OnInit {
     const chartDiv = document.getElementById('line-chart');
 
     this.width = chartDiv.clientWidth;
-    this.height = chartDiv.clientHeight;
+    this.height = chartDiv.clientHeight - 60;
 
     this.margin = { top: 50, right: 80, bottom: 60, left: 50 };
     this.width = this.width - this.margin.left - this.margin.right;
@@ -81,7 +81,7 @@ export class ChartTwoComponent implements OnInit {
 
       // this.plotBarChart(profit);
       this.plotLineChart2(this.oilPrice);
-      this.plotLineChart(this.oilPrice);
+      this.plotLineChartV1(this.oilPrice);
 
 
       const dateSlider = d3.select('#line-chart').append('div')
@@ -163,6 +163,23 @@ export class ChartTwoComponent implements OnInit {
    */
   plotLineChart(data: Price[]) {
 
+
+    const svgDefs = this.svg.append('defs');
+
+    const priceGradient = svgDefs.append('linearGradient')
+      .attr('id', 'priceGradient');
+
+    // Create the stops of the main gradient. Each stop will be assigned
+    // a class to style the stop using CSS.
+    priceGradient.append('stop')
+      .attr('class', 'stop-right')
+      .attr('offset', '0');
+
+    priceGradient.append('stop')
+      .attr('class', 'stop-left')
+      .attr('offset', '1');
+
+
     const xScale = d3.scaleBand<Date>().rangeRound([0, this.width]).padding(0.1);
     xScale.domain(this.oilPrice.map(function (d) { return d.date; }));
 
@@ -223,6 +240,128 @@ export class ChartTwoComponent implements OnInit {
       });
 
   }
+
+  /**
+   *
+   * @param data
+   */
+  plotLineChart2(data: Price[]) {
+
+
+    const svgDefs = this.svg.append('defs');
+
+    const mainGradient = svgDefs.append('linearGradient')
+      .attr('id', 'mainGradient');
+
+    // Create the stops of the main gradient. Each stop will be assigned
+    // a class to style the stop using CSS.
+    mainGradient.append('stop')
+      .attr('class', 'stop-left')
+      .attr('offset', '0');
+
+    mainGradient.append('stop')
+      .attr('class', 'stop-right')
+      .attr('offset', '1');
+
+
+
+    const xScale = d3.scaleTime().range([0, this.width]);
+    const yScale = d3.scaleLinear().range([this.height, 0]);
+
+
+    xScale.domain(d3.extent(data, function (d) { return d.date; }));
+    // yScale.domain([0, d3.max(data, function (d) { return d.close; })]);
+    yScale.domain([d3.min(data, function (d) { return d.profit; }), d3.max(data, function (d) { return d.profit; })]);
+
+    const line = d3.line<Price>()
+      .x(function (d: Price, i) { return xScale(d.date); })
+      .y(function (d: Price) { return yScale(d.profit); })
+      .curve(d3.curveStep);
+
+    // define the area
+    const area = d3.area<Price>()
+      .x(function (d) { return xScale(d.date); })
+      .y0(this.height)
+      .y1(function (d) { return yScale(d.profit); }).curve(d3.curveStep);
+
+    const g = this.svg.append('g');
+
+    g.append('path')
+      .datum(this.oilPrice)
+      .attr('class', 'line-asset')
+      .attr('d', line);
+
+
+    // add the area
+    g.append('path')
+      .data([data])
+      .attr('class', 'area')
+      .attr('d', area);
+
+
+    // Add the X Axis
+    g.append('g')
+      .attr('transform', 'translate(0,' + this.height + ')')
+      .call(d3.axisBottom(xScale))
+      .selectAll('text')
+      .style('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '-.55em')
+      .attr('transform', 'rotate(-45)');
+
+
+    // Add the Y Axis
+    g.append('g')
+      .attr('transform', 'translate( ' + this.width + ', 0 )')
+      .call(d3.axisRight(yScale));
+
+
+
+    const focus = g.append('g')
+      .attr('class', 'focus')
+      .style('display', 'none');
+
+    // focus.append('line')
+    //   .attr('class', 'x-hover-line hover-line')
+    //   .attr('y1', 0)
+    //   .attr('y2', this.height);
+
+    // focus.append('line')
+    //   .attr('class', 'y-hover-line hover-line')
+    //   .attr('x1', this.width)
+    //   .attr('x2', this.width);
+
+    focus.append('circle')
+      .attr('r', 7.5);
+
+    focus.append('text')
+      .attr('x', 15)
+      .attr('dy', '.31em');
+
+    const bisectDate = d3.bisector(function (d) { return d['date']; }).left;
+
+    this.svg.append('rect')
+      // .attr('transform', 'translate( 0,0 )')
+      .attr('class', 'overlay')
+      .attr('width', this.width)
+      .attr('height', this.height)
+      .on('mouseover', function () { focus.style('display', null); })
+      .on('mouseout', function () { focus.style('display', 'none'); })
+      .on('mousemove', function () {
+        const x0 = xScale.invert(d3.mouse(this)[0]);
+        const i = bisectDate(data, x0, 1);
+        const d0 = data[i - 1];
+        const d1 = data[i];
+        console.log(x0, i, d0, d1);
+        const d = d1;
+        focus.attr('transform', 'translate(' + xScale(d.date) + ',' + yScale(d.profit) + ')');
+        focus.select('text').text(function () { return d.profit; });
+        // focus.select('.x-hover-line').attr('y2', this.height - yScale(d.close));
+        // focus.select('.y-hover-line').attr('x2', this.width + this.width);
+      });
+
+  }
+
 
   /**
    *
@@ -289,112 +428,72 @@ export class ChartTwoComponent implements OnInit {
 
   }
 
+
   /**
    *
    * @param data
    */
-  plotLineChart2(data: Price[]) {
+  plotLineChartV1(data: Price[]) {
 
-    const xScale = d3.scaleTime().range([0, this.width]);
-    const yScale = d3.scaleLinear().range([this.height, 0]);
+    const xScale = d3.scaleBand<Date>().rangeRound([0, this.width]).padding(0.1);
+    xScale.domain(this.oilPrice.map(function (d) { return d.date; }));
 
 
-    xScale.domain(d3.extent(data, function (d) { return d.date; }));
-    // yScale.domain([0, d3.max(data, function (d) { return d.close; })]);
-    yScale.domain([d3.min(data, function (d) { return d.profit; }), d3.max(data, function (d) { return d.profit; })]);
+    const yScale = d3.scaleLinear()
+      .domain(d3.extent(this.oilPrice, function (d) { return d.close; }))
+      .range([this.height, 0]);
 
     const line = d3.line<Price>()
       .x(function (d: Price, i) { return xScale(d.date); })
-      .y(function (d: Price) { return yScale(d.profit); })
-      .curve(d3.curveStep);
+      .y(function (d: Price) { return yScale(d.close); });
 
-    const g = this.svg.append('g');
 
-    g.append('path')
+    this.svg.append('g')
+      .attr('class', 'y axis')
+      .call(d3.axisLeft(yScale));
+
+    this.svg.append('path')
       .datum(this.oilPrice)
       .attr('class', 'line')
       .attr('d', line);
 
-
-    // Add the X Axis
-    g.append('g')
-      .attr('transform', 'translate(0,' + this.height + ')')
-      .call(d3.axisBottom(xScale))
-      .selectAll('text')
-      .style('text-anchor', 'end')
-      .attr('dx', '-.8em')
-      .attr('dy', '-.55em')
-      .attr('transform', 'rotate(-45)');
+    const lineDots = this.svg.selectAll('.dot')
+      .data(this.oilPrice)
+      .enter().append('circle')
+      .attr('class', 'dot')
+      .attr('cx', function (d, i) { return xScale(d.date); })
+      .attr('cy', function (d) { return yScale(d.close); })
+      .attr('r', 2);
 
 
+    const div = d3.select('#line-chart').append('div')
+      .attr('class', 'tooltip')
+      .style('opacity', 0);
 
-    // const xAxis = d3.axisBottom(xScale)
-    //   .tickFormat(d3.timeFormat('%Y-%m-%d'))
-    //   .tickValues(xScale.domain().filter(function (d, i) { return !(i % 4); }));
-
-    // g.append('g')
-    //   .attr('class', 'x axis')
-    //   .attr('transform', 'translate(0,' + this.height + ')')
-    //   .call(xAxis)
-    //   .selectAll('text')
-    //   .style('text-anchor', 'end')
-    //   .attr('dx', '-.8em')
-    //   .attr('dy', '-.55em')
-    //   .attr('transform', 'rotate(-45)');
-
-
-
-    // Add the Y Axis
-    g.append('g')
-      .attr('transform', 'translate( ' + this.width + ', 0 )')
-      .call(d3.axisRight(yScale));
-
-
-
-    const focus = g.append('g')
-      .attr('class', 'focus')
-      .style('display', 'none');
-
-    // focus.append('line')
-    //   .attr('class', 'x-hover-line hover-line')
-    //   .attr('y1', 0)
-    //   .attr('y2', this.height);
-
-    // focus.append('line')
-    //   .attr('class', 'y-hover-line hover-line')
-    //   .attr('x1', this.width)
-    //   .attr('x2', this.width);
-
-    focus.append('circle')
-      .attr('r', 7.5);
-
-    focus.append('text')
-      .attr('x', 15)
-      .attr('dy', '.31em');
-
-    const bisectDate = d3.bisector(function (d) { return d['date']; }).left;
-
-    this.svg.append('rect')
-      // .attr('transform', 'translate( 0,0 )')
-      .attr('class', 'overlay')
-      .attr('width', this.width)
-      .attr('height', this.height)
-      .on('mouseover', function () { focus.style('display', null); })
-      .on('mouseout', function () { focus.style('display', 'none'); })
-      .on('mousemove', function () {
-        const x0 = xScale.invert(d3.mouse(this)[0]);
-        const i = bisectDate(data, x0, 1);
-        const d0 = data[i - 1];
-        const d1 = data[i];
-        console.log(x0, i, d0, d1);
-        const d = d1;
-        focus.attr('transform', 'translate(' + xScale(d.date) + ',' + yScale(d.profit) + ')');
-        focus.select('text').text(function () { return d.profit; });
-        // focus.select('.x-hover-line').attr('y2', this.height - yScale(d.close));
-        // focus.select('.y-hover-line').attr('x2', this.width + this.width);
+    lineDots.attr('cx', function (d) {
+      return xScale(d.date);
+    })
+      .attr('cy', function (d) {
+        return yScale(d.close);
+      })
+      .on('mouseover', function (d) {
+        const formatMinute = d3.timeFormat('%Y-%m-%d %I:%M');
+        div.transition()
+          .duration(200)
+          .style('opacity', .9)
+          .style('visibility', 'visible');
+        div.html(
+          '<h4>' + formatMinute(d.date) + '</h4>' +
+          '<p>' + 'Price : $ ' + d.close + '</p>'
+        ).style('left', (d3.event.pageX) + 'px')
+          .style('top', (d3.event.pageY - 28) + 'px');
+      })
+      .on('mouseout', (d) => {
+        div.transition()
+          .duration(500)
+          .style('opacity', 0);
       });
 
   }
-
 
 }
