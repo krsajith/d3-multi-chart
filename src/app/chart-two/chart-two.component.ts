@@ -80,8 +80,9 @@ export class ChartTwoComponent implements OnInit {
       profit.push(new Price(this.oilPrice[100].date, 0, 0, 200 * 1000, ''));
 
       // this.plotBarChart(profit);
+      
       this.plotLineChart2(this.oilPrice);
-      this.plotLineChartV1(this.oilPrice);
+      this.plotLineChart(this.oilPrice);
 
 
       const dateSlider = d3.select('#line-chart').append('div')

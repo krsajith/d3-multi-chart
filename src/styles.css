@@ -1,7 +1,7 @@
 #line-chart{
     height: 800px;
     border-style: solid;
-    border-color: #182848;
+    border-color: url(#priceGradient);
     border-width: thin;
 }
 
@@ -51,7 +51,7 @@ div.tooltip {
 
 
 .noUi-connect {
-    background: #182848 !important;
+    background: url(#priceGradient) !important;
 }
 
 .axis {
