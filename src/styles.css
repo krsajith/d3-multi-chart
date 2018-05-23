@@ -61,7 +61,7 @@ div.tooltip {
 .axis path,
 .axis line {
   fill: none;
-  stroke: url(#mainGradient);;
+  stroke: black;
   stroke-width: 1px;
   shape-rendering: crispEdges;
 }
@@ -83,7 +83,7 @@ div.tooltip {
     fill: none;
     /* stroke: #0d3d56; */
     stroke: url(#mainGradient);
-    stroke-width: 5px;
+    stroke-width: 2px;
   }
   
   .overlay {
@@ -109,3 +109,9 @@ div.tooltip {
       fill: url(#mainGradient);
     }
     
+
+    .zoom {
+        cursor: move;
+        fill: none;
+        pointer-events: all;
+      }

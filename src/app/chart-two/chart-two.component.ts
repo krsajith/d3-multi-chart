@@ -38,11 +38,18 @@ export class ChartTwoComponent implements OnInit {
 
   oilPrice: Price[] = new Array();
 
-  mmddyyFormat = d3.timeParse('%m/%d/%Y');
+  mmddyyFormat = d3.timeParse('%Y-%m-%d');
 
   constructor(private http: HttpClient) { }
 
   ngOnInit() {
+
+    this.http.post<any>('http://127.0.0.1:8082/auth', {
+      'username': 'Investor',
+      'password': 'password'
+    }).subscribe(resp => {
+      localStorage.setItem('token', resp.token);
+    });
 
     const chartDiv = document.getElementById('line-chart');
 
@@ -58,31 +65,39 @@ export class ChartTwoComponent implements OnInit {
       .attr('height', this.height + this.margin.top + this.margin.bottom)
       .append('g')
       .attr('transform',
-        'translate(' + this.margin.left + ',' + this.margin.top + ')');
+      'translate(' + this.margin.left + ',' + this.margin.top + ')');
 
+    this.http.post<any[]>('http://127.0.0.1:8082/getList', { sql: 'vw_transactions' }).subscribe(data => {
 
-    this.http.get<[{}]>('./assets/txn-data.json').subscribe(data => {
-
-      data.forEach((obj, index) => this.oilPrice.push(
-        new Price(this.mmddyyFormat(obj['date']), obj['predicted'], obj['close'], Math.ceil(index / 10) * 100000, obj['action'])));
-
+      console.table(data);
       const profit: Price[] = new Array();
-      profit.push(new Price(this.oilPrice[0].date, 0, 0, 100 * 1000, ''));
-      profit.push(new Price(this.oilPrice[10].date, 0, 0, 110 * 1000, ''));
-      profit.push(new Price(this.oilPrice[20].date, 0, 0, 120 * 1000, ''));
-      profit.push(new Price(this.oilPrice[30].date, 0, 0, 130 * 1000, ''));
-      profit.push(new Price(this.oilPrice[40].date, 0, 0, 140 * 1000, ''));
-      profit.push(new Price(this.oilPrice[50].date, 0, 0, 150 * 1000, ''));
-      profit.push(new Price(this.oilPrice[60].date, 0, 0, 160 * 1000, ''));
-      profit.push(new Price(this.oilPrice[70].date, 0, 0, 170 * 1000, ''));
-      profit.push(new Price(this.oilPrice[80].date, 0, 0, 180 * 1000, ''));
-      profit.push(new Price(this.oilPrice[90].date, 0, 0, 190 * 1000, ''));
-      profit.push(new Price(this.oilPrice[100].date, 0, 0, 200 * 1000, ''));
+
+      data.forEach((obj, index) => {
+        this.oilPrice.push(
+          new Price(this.mmddyyFormat(obj['date']), obj['predicted'], obj['close'], obj['amount'], obj['action']));
+        profit.push(new Price(obj['date'], 0, 0, obj['profit'], ''));
+      });
+
+      // const profit: Price[] = new Array();
+      // profit.push(new Price(this.oilPrice[0].date, 0, 0, 100 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[10].date, 0, 0, 110 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[20].date, 0, 0, 120 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[30].date, 0, 0, 130 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[40].date, 0, 0, 140 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[50].date, 0, 0, 150 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[60].date, 0, 0, 160 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[70].date, 0, 0, 170 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[80].date, 0, 0, 180 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[90].date, 0, 0, 190 * 1000, ''));
+      // profit.push(new Price(this.oilPrice[100].date, 0, 0, 200 * 1000, ''));
 
       // this.plotBarChart(profit);
+
       
+
+
       this.plotLineChart2(this.oilPrice);
-      this.plotLineChart(this.oilPrice);
+      // this.plotLineChart(this.oilPrice);
 
 
       const dateSlider = d3.select('#line-chart').append('div')
@@ -246,7 +261,7 @@ export class ChartTwoComponent implements OnInit {
    *
    * @param data
    */
-  plotLineChart2(data: Price[]) {
+  plotAreaChart(data: Price[]) {
 
 
     const svgDefs = this.svg.append('defs');
@@ -270,7 +285,9 @@ export class ChartTwoComponent implements OnInit {
     const yScale = d3.scaleLinear().range([this.height, 0]);
 
 
-    xScale.domain(d3.extent(data, function (d) { return d.date; }));
+    // xScale.domain(d3.extent(data, function (d) { return d.date; }));
+    // xScale.domain([this.mmddyyFormat('2017-09-01'),this.mmddyyFormat('2018-09-01')]);
+    xScale.domain([this.oilPrice[0].date, this.oilPrice[this.oilPrice.length - 1].date]);
     // yScale.domain([0, d3.max(data, function (d) { return d.close; })]);
     yScale.domain([d3.min(data, function (d) { return d.profit; }), d3.max(data, function (d) { return d.profit; })]);
 
@@ -311,10 +328,15 @@ export class ChartTwoComponent implements OnInit {
       .attr('transform', 'rotate(-45)');
 
 
-    // Add the Y Axis
+    // Add the Y Axis on right side 
+    // g.append('g')
+    //   .attr('transform', 'translate( ' + this.width + ', 0 )')
+    //   .call(d3.axisRight(yScale));
+
+    // Add the Y Axis on left side 
     g.append('g')
-      .attr('transform', 'translate( ' + this.width + ', 0 )')
-      .call(d3.axisRight(yScale));
+      .attr('transform', 'translate( ' + 0 + ', 0 )')
+      .call(d3.axisLeft(yScale));
 
 
 
@@ -360,6 +382,164 @@ export class ChartTwoComponent implements OnInit {
         // focus.select('.x-hover-line').attr('y2', this.height - yScale(d.close));
         // focus.select('.y-hover-line').attr('x2', this.width + this.width);
       });
+
+  }
+
+  /**
+   *
+   * @param data
+   */
+  plotLineChart2(data: Price[]) {
+
+
+    const svgDefs = this.svg.append('defs');
+
+    const mainGradient = svgDefs.append('linearGradient')
+      .attr('id', 'mainGradient');
+
+    // Create the stops of the main gradient. Each stop will be assigned
+    // a class to style the stop using CSS.
+    mainGradient.append('stop')
+      .attr('class', 'stop-left')
+      .attr('offset', '0');
+
+    mainGradient.append('stop')
+      .attr('class', 'stop-right')
+      .attr('offset', '1');
+
+
+
+    const xScale = d3.scaleTime().range([0, this.width]);
+    const yScale = d3.scaleLinear().range([this.height, 0]);
+
+
+
+    // xScale.domain(d3.extent(data, function (d) { return d.date; }));
+    // xScale.domain([this.mmddyyFormat('2017-09-01'),this.mmddyyFormat('2018-09-01')]);
+    xScale.domain([this.oilPrice[0].date, this.oilPrice[this.oilPrice.length - 1].date]);
+    // yScale.domain([0, d3.max(data, function (d) { return d.close; })]);
+    yScale.domain([d3.min(data, function (d) { return d.profit; }), d3.max(data, function (d) { return d.profit; })]);
+
+    const line = d3.line<Price>()
+      .x(function (d: Price, i) { return xScale(d.date); })
+      .y(function (d: Price) { return yScale(d.profit); })
+      .curve(d3.curveMonotoneX);
+
+
+    
+
+
+    // define the area
+    // const area = d3.area<Price>()
+    //   .x(function (d) { return xScale(d.date); })
+    //   .y0(this.height)
+    //   .y1(function (d) { return yScale(d.profit); }).curve(d3.curveStep);
+
+    const g = this.svg.append('g');
+
+    g.append('path')
+      .datum(this.oilPrice)
+      .attr('class', 'line-asset')
+      .attr('d', line);
+
+
+    // add the area
+    // g.append('path')
+    //   .data([data])
+    //   .attr('class', 'area')
+    //   .attr('d', area);
+
+
+    // Add the X Axis
+    g.append('g')
+      .attr('transform', 'translate(0,' + this.height + ')')
+      .call(d3.axisBottom(xScale))
+      .selectAll('text')
+      .style('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '-.55em')
+      .attr('transform', 'rotate(-45)');
+
+
+    // Add the Y Axis on right side 
+    // g.append('g')
+    //   .attr('transform', 'translate( ' + this.width + ', 0 )')
+    //   .call(d3.axisRight(yScale));
+
+    // Add the Y Axis on left side 
+    g.append('g')
+      .attr('transform', 'translate( ' + 0 + ', 0 )')
+      .call(d3.axisLeft(yScale));
+
+      const buys=this.oilPrice.filter(price=>price.action==='BOUGHT');
+      const arcTriangle = d3.symbol().type(d3.symbolTriangle);
+  
+      var bubble = this.svg.selectAll('.bubble')
+			.data(buys)
+      .enter().append('path')
+      .attr('d', arcTriangle)
+      .attr('fill', '#ce1a1a')
+      .attr('stroke','#000')
+      .attr('stroke-width',1)
+      .attr('transform',function(d,i){ return "translate("+xScale(d.date) +","+yScale(d.profit)+") rotate(180)"; });
+  
+
+      const sells=this.oilPrice.filter(price=>price.action==='SOLD');
+  
+      var bubble = this.svg.selectAll('.bubble')
+			.data(sells)
+      .enter().append('path')
+      .attr('d', arcTriangle)
+      .attr('fill', '#146136')
+      .attr('stroke','#000')
+      .attr('stroke-width',1)
+      .attr('transform',function(d,i){ return "translate("+xScale(d.date) +","+yScale(d.profit)+")"; });
+  
+
+
+
+    // const focus = g.append('g')
+    //   .attr('class', 'focus')
+    //   .style('display', 'none');
+
+    // focus.append('line')
+    //   .attr('class', 'x-hover-line hover-line')
+    //   .attr('y1', 0)
+    //   .attr('y2', this.height);
+
+    // focus.append('line')
+    //   .attr('class', 'y-hover-line hover-line')
+    //   .attr('x1', this.width)
+    //   .attr('x2', this.width);
+
+    // focus.append('circle')
+    //   .attr('r', 7.5);
+
+    // focus.append('text')
+    //   .attr('x', 15)
+    //   .attr('dy', '.31em');
+
+    // const bisectDate = d3.bisector(function (d) { return d['date']; }).left;
+
+    // this.svg.append('rect')
+    //   // .attr('transform', 'translate( 0,0 )')
+    //   .attr('class', 'overlay')
+    //   .attr('width', this.width)
+    //   .attr('height', this.height)
+    //   .on('mouseover', function () { focus.style('display', null); })
+    //   .on('mouseout', function () { focus.style('display', 'none'); })
+    //   .on('mousemove', function () {
+    //     const x0 = xScale.invert(d3.mouse(this)[0]);
+    //     const i = bisectDate(data, x0, 1);
+    //     const d0 = data[i - 1];
+    //     const d1 = data[i];
+    //     // console.log(x0, i, d0, d1);
+    //     const d = d1;
+    //     focus.attr('transform', 'translate(' + xScale(d.date) + ',' + yScale(d.profit) + ')');
+    //     focus.select('text').text(function () { return d.profit; });
+    //     // focus.select('.x-hover-line').attr('y2', this.height - yScale(d.close));
+    //     // focus.select('.y-hover-line').attr('x2', this.width + this.width);
+    //   });
 
   }
 
@@ -421,7 +601,7 @@ export class ChartTwoComponent implements OnInit {
           .style('visibility', 'visible')
           .style('display', 'inline-block')
           .html('<h4>' + formatMinute(d.date) + '</h4>' +
-            '<p>' + 'Asset Value : $ ' + d.profit + '</p>');
+          '<p>' + 'Asset Value : $ ' + d.profit + '</p>');
       })
       .on('mouseout', function (d) {
         tooltip.style('display', 'none');
